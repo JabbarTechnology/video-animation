@@ -1,0 +1,441 @@
+// تحديث ملف الرسوم المتحركة لاستخدام الأصول المولدة
+
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>لما تشرح لأهلك شغلك في الذكاء الاصطناعي</title>
+    <style>
+        body {
+            margin: 0;
+            padding: 0;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 100vh;
+            background-color: #f5f5f5;
+            font-family: 'Arial', sans-serif;
+        }
+        
+        #animationContainer {
+            position: relative;
+            width: 360px;
+            height: 640px; /* نسبة 9:16 مناسبة للريلز */
+            overflow: hidden;
+            background-color: #fff;
+            box-shadow: 0 0 10px rgba(0,0,0,0.2);
+        }
+        
+        canvas {
+            position: absolute;
+            top: 0;
+            left: 0;
+        }
+        
+        #controls {
+            position: absolute;
+            bottom: 10px;
+            left: 10px;
+            z-index: 100;
+        }
+        
+        #subtitles {
+            position: absolute;
+            bottom: 50px;
+            left: 0;
+            width: 100%;
+            text-align: center;
+            color: white;
+            background-color: rgba(0,0,0,0.7);
+            padding: 5px;
+            font-size: 14px;
+            direction: rtl;
+        }
+        
+        #title {
+            position: absolute;
+            top: 20px;
+            left: 0;
+            width: 100%;
+            text-align: center;
+            color: white;
+            background-color: rgba(0,0,0,0.7);
+            padding: 5px;
+            font-size: 18px;
+            font-weight: bold;
+            direction: rtl;
+        }
+    </style>
+</head>
+<body>
+    <div id="animationContainer">
+        <canvas id="backgroundCanvas" width="360" height="640"></canvas>
+        <canvas id="characterCanvas" width="360" height="640"></canvas>
+        <canvas id="foregroundCanvas" width="360" height="640"></canvas>
+        <div id="title"></div>
+        <div id="subtitles"></div>
+        <div id="controls">
+            <button id="playPauseBtn">تشغيل</button>
+            <button id="restartBtn">إعادة</button>
+        </div>
+    </div>
+
+    <script>
+        // تعريف العناصر الرئيسية
+        const backgroundCanvas = document.getElementById('backgroundCanvas');
+        const characterCanvas = document.getElementById('characterCanvas');
+        const foregroundCanvas = document.getElementById('foregroundCanvas');
+        const titleDiv = document.getElementById('title');
+        const subtitlesDiv = document.getElementById('subtitles');
+        const playPauseBtn = document.getElementById('playPauseBtn');
+        const restartBtn = document.getElementById('restartBtn');
+        
+        const bgCtx = backgroundCanvas.getContext('2d');
+        const charCtx = characterCanvas.getContext('2d');
+        const fgCtx = foregroundCanvas.getContext('2d');
+        
+        // تحميل الصور
+        const images = {};
+        const imageSources = {
+            'background': 'assets/majlis_yamani.png',
+            'father': 'assets/father.png',
+            'mother': 'assets/mother.png',
+            'son': 'assets/son.png',
+            'laptop': 'assets/laptop.png',
+            'teapot': 'assets/teapot.png',
+            'teacup': 'assets/teacup.png'
+        };
+        
+        let imagesLoaded = 0;
+        const totalImages = Object.keys(imageSources).length;
+        
+        // تحميل الصور
+        for (const key in imageSources) {
+            images[key] = new Image();
+            images[key].onload = function() {
+                imagesLoaded++;
+                if (imagesLoaded === totalImages) {
+                    // بدء الرسوم المتحركة بعد تحميل جميع الصور
+                    startAnimation();
+                }
+            };
+            images[key].src = imageSources[key];
+        }
+        
+        // متغيرات الرسوم المتحركة
+        let animationFrameId;
+        let currentTime = 0;
+        let isPlaying = false;
+        const totalDuration = 90; // 90 ثانية
+        
+        // تعريف المشاهد
+        const scenes = [
+            {
+                start: 0,
+                end: 10,
+                title: "لما تشرح لأهلك شغلك في الذكاء الاصطناعي",
+                setup: function(time) {
+                    // رسم الخلفية - المجلس اليمني
+                    bgCtx.drawImage(images.background, 0, 0, 360, 640);
+                    
+                    // رسم الأب يشاهد التلفاز
+                    charCtx.drawImage(images.father, 50, 300, 100, 150);
+                    
+                    // رسم الابن مع اللابتوب
+                    charCtx.drawImage(images.son, 200, 350, 100, 150);
+                    charCtx.drawImage(images.laptop, 210, 450, 80, 50);
+                    
+                    // رسم الأم في الخلفية
+                    charCtx.drawImage(images.mother, 300, 200, 100, 150);
+                    charCtx.drawImage(images.teapot, 320, 300, 40, 40);
+                },
+                subtitle: ""
+            },
+            {
+                start: 10,
+                end: 25,
+                title: "",
+                setup: function(time) {
+                    // مسح الكانفاس
+                    charCtx.clearRect(0, 0, 360, 640);
+                    
+                    // رسم الأب ينظر إلى الابن
+                    charCtx.drawImage(images.father, 50, 300, 100, 150);
+                    
+                    // رسم الابن مع اللابتوب
+                    charCtx.drawImage(images.son, 200, 350, 100, 150);
+                    charCtx.drawImage(images.laptop, 210, 450, 80, 50);
+                    
+                    // تحريك الأب قليلاً للتعبير عن الحديث
+                    if (Math.floor(time) % 2 === 0) {
+                        charCtx.drawImage(images.father, 52, 300, 100, 150);
+                    }
+                },
+                subtitle: function(time) {
+                    if (time < 17) {
+                        return "الأب: هاه ولدي، قل لي بالله... أيش تشتغل من بيتك؟ كل يوم جالس عاللابتوب؟";
+                    } else {
+                        return "الابن: مبرمج يا بوي... أشتغل على مشروع ذكاء اصطناعي.";
+                    }
+                }
+            },
+            {
+                start: 25,
+                end: 40,
+                title: "",
+                setup: function(time) {
+                    // مسح الكانفاس
+                    charCtx.clearRect(0, 0, 360, 640);
+                    
+                    // رسم الأب مع تعبير استغراب
+                    charCtx.drawImage(images.father, 50, 300, 100, 150);
+                    
+                    // رسم الابن مع اللابتوب
+                    charCtx.drawImage(images.son, 200, 350, 100, 150);
+                    charCtx.drawImage(images.laptop, 210, 450, 80, 50);
+                    
+                    // تحريك الأب للتعبير عن الاستغراب
+                    if (Math.floor(time) % 2 === 0) {
+                        charCtx.drawImage(images.father, 48, 298, 104, 154);
+                    }
+                },
+                subtitle: function(time) {
+                    if (time < 32) {
+                        return "الأب: ذكاء صناعي؟! تشتغل في مصنع؟";
+                    } else {
+                        return "الابن: لااا، نعلم الكمبيوتر يفكر زيّ الناس، يتعرّف على الكلام، يشوف الصور ويفهمها.";
+                    }
+                }
+            },
+            {
+                start: 40,
+                end: 55,
+                title: "",
+                setup: function(time) {
+                    // مسح الكانفاس
+                    charCtx.clearRect(0, 0, 360, 640);
+                    
+                    // رسم الأب
+                    charCtx.drawImage(images.father, 50, 300, 100, 150);
+                    
+                    // رسم الابن مع اللابتوب
+                    charCtx.drawImage(images.son, 200, 350, 100, 150);
+                    charCtx.drawImage(images.laptop, 210, 450, 80, 50);
+                    
+                    // رسم الأم تدخل بصينية الشاي
+                    const motherX = Math.max(300 - (time - 40) * 10, 150);
+                    charCtx.drawImage(images.mother, motherX, 200, 100, 150);
+                    charCtx.drawImage(images.teapot, motherX + 20, 300, 40, 40);
+                    charCtx.drawImage(images.teacup, motherX + 30, 350, 30, 20);
+                    
+                    // تحريك الأم للتعبير عن الحديث
+                    if (Math.floor(time) % 2 === 0) {
+                        charCtx.drawImage(images.mother, motherX + 2, 200, 100, 150);
+                    }
+                },
+                subtitle: function(time) {
+                    if (time < 47) {
+                        return "الأم: الله المستعان! عاد ناقصنا كمبيوتر بعقل؟! قد احنا مش فاهمينك، عاد هو؟";
+                    } else {
+                        return "الابن: هو يفهم أسرع من بعض الناس، بس ما يطبخش زينا 😂";
+                    }
+                }
+            },
+            {
+                start: 55,
+                end: 70,
+                title: "",
+                setup: function(time) {
+                    // مسح الكانفاس
+                    charCtx.clearRect(0, 0, 360, 640);
+                    
+                    // رسم الأب يميل للأمام
+                    charCtx.drawImage(images.father, 60, 290, 100, 150);
+                    
+                    // رسم الابن مع اللابتوب
+                    charCtx.drawImage(images.son, 200, 350, 100, 150);
+                    charCtx.drawImage(images.laptop, 210, 450, 80, 50);
+                    
+                    // رسم الأم جالسة
+                    charCtx.drawImage(images.mother, 150, 250, 100, 150);
+                    charCtx.drawImage(images.teapot, 150, 350, 40, 40);
+                    
+                    // تحريك الشخصيات للتعبير عن الحوار
+                    if (Math.floor(time) % 3 === 0) {
+                        charCtx.drawImage(images.father, 62, 290, 100, 150);
+                    } else if (Math.floor(time) % 3 === 1) {
+                        charCtx.drawImage(images.son, 202, 350, 100, 150);
+                    } else {
+                        charCtx.drawImage(images.mother, 152, 250, 100, 150);
+                    }
+                },
+                subtitle: function(time) {
+                    if (time < 58) {
+                        return "الأب: يعني تسووا روبوتات تمشي؟";
+                    } else if (time < 62) {
+                        return "الابن: مش دايم... بس نبرمج أنظمة تتعرف على الصوت والصور، زي لما تكلم تلفونك ويكتب.";
+                    } else if (time < 66) {
+                        return "الأم: هاه! موديلات صور؟ استغفر الله! ما بش شغل ثاني؟";
+                    } else {
+                        return "الابن: لا يا أمي! موديلات يعني برامج رياضية... معادلات وكودات.";
+                    }
+                }
+            },
+            {
+                start: 70,
+                end: 90,
+                title: "",
+                setup: function(time) {
+                    // مسح الكانفاس
+                    charCtx.clearRect(0, 0, 360, 640);
+                    
+                    // رسم الأب مع كوب شاي
+                    charCtx.drawImage(images.father, 50, 300, 100, 150);
+                    charCtx.drawImage(images.teacup, 80, 330, 30, 20);
+                    
+                    // رسم الابن
+                    charCtx.drawImage(images.son, 200, 350, 100, 150);
+                    charCtx.drawImage(images.laptop, 210, 450, 80, 50);
+                    
+                    // رسم الأم تضع الشاي
+                    charCtx.drawImage(images.mother, 150, 250, 100, 150);
+                    charCtx.drawImage(images.teacup, 210, 400, 30, 20);
+                    
+                    // تحريك الشخصيات للتعبير عن الحوار
+                    const talkingPerson = Math.floor((time - 70) / 3) % 3;
+                    if (talkingPerson === 0) {
+                        charCtx.drawImage(images.father, 52, 300, 100, 150);
+                    } else if (talkingPerson === 1) {
+                        charCtx.drawImage(images.son, 202, 350, 100, 150);
+                    } else {
+                        charCtx.drawImage(images.mother, 152, 250, 100, 150);
+                    }
+                    
+                    // في النهاية، تحريك جميع الشخصيات للضحك
+                    if (time > 85) {
+                        if (Math.floor(time) % 2 === 0) {
+                            charCtx.drawImage(images.father, 52, 302, 100, 150);
+                            charCtx.drawImage(images.son, 202, 352, 100, 150);
+                            charCtx.drawImage(images.mother, 152, 252, 100, 150);
+                        }
+                        
+                        // إظهار العنوان النهائي
+                        titleDiv.textContent = "شغل الذكاء الاصطناعي... صعب تشرحه لأهلك 😂";
+                    }
+                },
+                subtitle: function(time) {
+                    if (time < 73) {
+                        return "الأب: وكله من البيت؟ ما تداوموش؟";
+                    } else if (time < 76) {
+                        return "الابن: أيوه، كله أونلاين... أشتغل على GitHub وSlack وZoom...";
+                    } else if (time < 79) {
+                        return "الأب: Zoom؟ ذا حق التصوير؟";
+                    } else if (time < 81) {
+                        return "الابن: لا يا بوي... ذا للاجتماعات.";
+                    } else if (time < 83) {
+                        return "الأم: وGitHub؟ حق أيش ذا؟";
+                    } else if (time < 85) {
+                        return "الابن: زي دفتر الواجب، نخزن فيه الأكواد.";
+                    } else if (time < 87) {
+                        return "الأب: طيب، لو الكمبيوتر ما فهمك؟";
+                    } else if (time < 88) {
+                        return "الابن: أعيد أدرّبه.";
+                    } else {
+                        return "الأم: الله يعينك... حتى الكمبيوتر عيّاك يفهمك 😂";
+                    }
+                }
+            }
+        ];
+        
+        // وظيفة تحديث الرسوم المتحركة
+        function updateAnimation(timestamp) {
+            if (!isPlaying) return;
+            
+            // حساب الوقت الحالي
+            currentTime += 1/60; // تقريباً 60 إطار في الثانية
+            if (currentTime > totalDuration) {
+                currentTime = totalDuration;
+                isPlaying = false;
+                playPauseBtn.textContent = "تشغيل";
+            }
+            
+            // مسح الكانفاس
+            bgCtx.clearRect(0, 0, 360, 640);
+            charCtx.clearRect(0, 0, 360, 640);
+            fgCtx.clearRect(0, 0, 360, 640);
+            
+            // تحديد المشهد الحالي
+            let currentScene = null;
+            for (const scene of scenes) {
+                if (currentTime >= scene.start && currentTime < scene.end) {
+                    currentScene = scene;
+                    break;
+                }
+            }
+            
+            // رسم المشهد الحالي
+            if (currentScene) {
+                // رسم الخلفية - المجلس اليمني
+                bgCtx.drawImage(images.background, 0, 0, 360, 640);
+                
+                // إعداد المشهد
+                currentScene.setup(currentTime);
+                
+                // تحديث العنوان
+                titleDiv.textContent = currentScene.title || "";
+                
+                // تحديث الترجمة
+                if (typeof currentScene.subtitle === 'function') {
+                    subtitlesDiv.textContent = currentScene.subtitle(currentTime);
+                } else {
+                    subtitlesDiv.textContent = currentScene.subtitle || "";
+                }
+            }
+            
+            // استمرار حلقة الرسوم المتحركة
+            animationFrameId = requestAnimationFrame(updateAnimation);
+        }
+        
+        // بدء الرسوم المتحركة
+        function startAnimation() {
+            // تعيين حالة التشغيل
+            isPlaying = true;
+            playPauseBtn.textContent = "إيقاف";
+            
+            // بدء حلقة الرسوم المتحركة
+            animationFrameId = requestAnimationFrame(updateAnimation);
+        }
+        
+        // إيقاف الرسوم المتحركة
+        function stopAnimation() {
+            isPlaying = false;
+            playPauseBtn.textContent = "تشغيل";
+            cancelAnimationFrame(animationFrameId);
+        }
+        
+        // إعادة تشغيل الرسوم المتحركة
+        function restartAnimation() {
+            currentTime = 0;
+            if (!isPlaying) {
+                isPlaying = true;
+                playPauseBtn.textContent = "إيقاف";
+                animationFrameId = requestAnimationFrame(updateAnimation);
+            }
+        }
+        
+        // إضافة مستمعي الأحداث
+        playPauseBtn.addEventListener('click', function() {
+            if (isPlaying) {
+                stopAnimation();
+            } else {
+                isPlaying = true;
+                playPauseBtn.textContent = "إيقاف";
+                animationFrameId = requestAnimationFrame(updateAnimation);
+            }
+        });
+        
+        restartBtn.addEventListener('click', restartAnimation);
+    </script>
+</body>
+</html>
